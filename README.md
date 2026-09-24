@@ -138,6 +138,7 @@ well-calibrated; below 1 is under-dispersed.
 ### Spectra
 
 ```bash
+pip install -e '.[spectrum]'          # ERA5 spectra need pyshtools
 python scripts/spectrum.py --system era5 --lead-times 1 6 24
 ```
 

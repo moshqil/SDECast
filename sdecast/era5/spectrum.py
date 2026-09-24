@@ -49,8 +49,8 @@ def ke_spectrum_uv(u: np.ndarray, v: np.ndarray) -> tuple[np.ndarray, np.ndarray
     try:
         import pyshtools as pysh
     except ImportError:
-        raise ImportError("pyshtools is required for the KE spectrum. "
-                          "Install with: pip install pyshtools")
+        raise ImportError("pyshtools is required for the ERA5 KE spectrum. "
+                          "Install it with:  pip install -e '.[spectrum]'")
 
     u = np.asarray(u, dtype=np.float64).squeeze()
     v = np.asarray(v, dtype=np.float64).squeeze()
