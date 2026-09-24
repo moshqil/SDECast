@@ -38,3 +38,10 @@ If you use this code, please cite:
 
     Marchenko, M., Andrae, M., Lindsten, F., and Naesseth, C. A.
     "SDE-Cast: Modeling Weather as a Neural SDE."
+
+The training method it builds on:
+
+    Bartosh, G., Vetrov, D., and Naesseth, C. A.
+    "SDE Matching: Scalable and Simulation-Free Training of Latent Stochastic
+    Differential Equations." ICML 2025.
+    https://openreview.net/forum?id=0Hd1lh52Fi

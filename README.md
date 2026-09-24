@@ -18,9 +18,10 @@ things follow that fixed-step forecasters do not give you:
   path, so an ensemble is just repeated sampling -- no separate perturbation
   scheme.
 
-Trained with [SDE Matching](https://arxiv.org/abs/2502.02472), which is
-simulation-free: no backpropagation through the solver, which is what makes
-neural SDEs tractable at weather-state dimensionality.
+Trained with [SDE Matching](https://openreview.net/forum?id=0Hd1lh52Fi) (Bartosh,
+Vetrov and Naesseth, ICML 2025), which is simulation-free: no backpropagation
+through the solver, which is what makes neural SDEs tractable at weather-state
+dimensionality.
 
 Continuous-trajectory animations: <https://moshqil.github.io/sde-cast-viz/>
 
