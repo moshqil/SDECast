@@ -1,0 +1,40 @@
+SDE-Cast -- inference-only release
+==================================
+
+This repository is licensed under CC BY-NC-SA 4.0 (see LICENSE). That choice is
+inherited from the third-party code it builds on, listed below.
+
+
+Third-party components
+----------------------
+
+1. sdecast/nets.py -- SongUNet backbone
+   Adapted from "Elucidating the Design Space of Diffusion-Based Generative
+   Models" (EDM), Tero Karras, Miika Aittala, Timo Aila, Samuli Laine (NVIDIA).
+   https://github.com/NVlabs/edm
+   Upstream is released under CC BY-NC-SA 4.0, which is why this repository as a
+   whole carries the same terms. Modifications: circular padding for periodic
+   domains (both axes for SQG, longitude only for ERA5), configurable attention
+   levels, and a linear time-embedding variant.
+
+2. sdecast/sqg/solver.py -- SQG pseudo-spectral solver
+   From the sqgturb package by Jeff Whitaker (NOAA),
+   jeffrey.s.whitaker@noaa.gov, https://github.com/jswhit/sqgturb
+   A work of the US federal government, in the public domain. Modifications:
+   packaging only.
+
+3. sample_data/era5_*.nc -- ERA5 reanalysis
+   Contains modified Copernicus Climate Change Service information (2018).
+   Generated using Copernicus Climate Change Service information. Neither the
+   European Commission nor ECMWF is responsible for any use of this data.
+   Redistributed here as a small slice under the Copernicus licence:
+   https://cds.climate.copernicus.eu/disclaimer-privacy
+
+
+Citation
+--------
+
+If you use this code, please cite:
+
+    Marchenko, M., Andrae, M., Lindsten, F., and Naesseth, C. A.
+    "SDE-Cast: Modeling Weather as a Neural SDE."

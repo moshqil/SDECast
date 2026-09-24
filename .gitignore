@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+.ipynb_checkpoints/
+
+# Model weights are distributed separately - see weights/README.md
+*.ckpt
+
+# Downloaded ERA5 / generated SQG data. sample_data/ is committed via the
+# negations below so the quickstart runs with no download.
+*.nc
+*.npy
+!sample_data/*.nc
+!sample_data/*.npy
+
+# Run outputs
+outputs/
+*.log
+
+# Packaging artifacts
+*.egg-info/
+build/
+dist/

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdecast"
+version = "1.0.0"
+description = "SDE-Cast: modeling weather as a neural SDE (inference-only release)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "CC-BY-NC-SA-4.0" }
+dependencies = [
+    "torch>=2.4",
+    "numpy>=1.26",
+    "tqdm>=4.66",
+    "xarray>=2024.1",
+    "h5netcdf>=1.3",
+    "h5py>=3.10",           # h5netcdf backend; not pulled in automatically
+    "netcdf4>=1.6",
+]
+
+[project.optional-dependencies]
+spectrum = ["pyshtools>=4.12"]          # spherical-harmonic KE spectrum (ERA5)
+plots    = ["matplotlib>=3.8"]
+download = ["cdsapi>=0.7"]              # Copernicus CDS access
+sqg      = ["scipy>=1.11"]              # SQG nature-run solver
+all      = ["pyshtools>=4.12", "matplotlib>=3.8", "cdsapi>=0.7", "scipy>=1.11"]
+
+[tool.setuptools.packages.find]
+include = ["sdecast*"]
