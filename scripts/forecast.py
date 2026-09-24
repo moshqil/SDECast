@@ -102,7 +102,8 @@ def forecast_sqg(args, model, hp, data, device):
 
     with torch.no_grad():
         path = rollout_sqg(model.p_sde, x0, n_ens=args.n_ens, ts=0.0, tf=tf,
-                           steps_per_unit_time=steps / tf)
+                           steps_per_unit_time=steps / tf,
+                           stochastic=not args.deterministic)
     _check_finite(path)
     return dict(forecast=ds.denormalize(path.cpu()).numpy(),
                 truth=ds.denormalize(truth.cpu()).numpy(),
@@ -136,7 +137,8 @@ def forecast_era5(args, model, hp, data, device, stats):
         path = rollout_era5(model.p_sde, x0, static_cond=static, n_ens=args.n_ens,
                             ts=0.0, tf=args.lead_hours,
                             steps_per_unit_time=args.steps_per_hour,
-                            init_time_days=float(t_days[0]), keep_steps=keep)
+                            init_time_days=float(t_days[0]), keep_steps=keep,
+                            stochastic=not args.deterministic)
     _check_finite(path)
     return dict(forecast=ds.denormalize(path.cpu().flatten(0, 1)).reshape(path.shape).numpy(),
                 truth=ds.denormalize(truth.cpu()).numpy(),

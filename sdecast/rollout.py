@@ -16,25 +16,32 @@ from sdecast.sde import solve_sde, solve_sde_time_dependent_cond
 
 
 def rollout_sqg(prior_sde, x0: Tensor, n_ens: int = 1, ts: float = 0.0,
-                tf: float = 1.0, steps_per_unit_time: int = 100) -> Tensor:
-    """Roll the SQG prior from ``x0`` (1, C, H, W). Returns (n_steps+1, n_ens, C, H, W)."""
+                tf: float = 1.0, steps_per_unit_time: int = 100,
+                stochastic: bool = True) -> Tensor:
+    """Roll the SQG prior from ``x0`` (1, C, H, W). Returns (n_steps+1, n_ens, C, H, W).
+
+    ``stochastic=False`` drops the diffusion term, integrating the drift alone --
+    every member then follows the same deterministic path.
+    """
     if n_ens > 1:
         x0 = x0.expand(n_ens, -1, -1, -1).contiguous()
     n_steps = max(1, int(round(steps_per_unit_time * (tf - ts))))
-    return solve_sde(prior_sde, x0, ts, tf, n_steps)
+    return solve_sde(prior_sde, x0, ts, tf, n_steps, stochastic=stochastic)
 
 
 def rollout_era5(prior_sde, x0: Tensor, static_cond: Tensor, n_ens: int = 1,
                  ts: float = 0.0, tf: float = 1.0, steps_per_unit_time: int = 64,
                  init_time_days: float | Tensor = 0.0,
-                 keep_steps: Optional[Sequence[int]] = None) -> Tensor:
+                 keep_steps: Optional[Sequence[int]] = None,
+                 stochastic: bool = True) -> Tensor:
     """Roll the ERA5 prior from ``x0`` (B, C, lat, lon).
 
     ``tf`` is the lead time in hours and ``init_time_days`` is ``dayofyear +
     hour/24`` at the initial state (scalar, or one entry per batch row) -- the
     model's temporal conditioning is absolute, so this must be correct.
     ``keep_steps`` selects which solver steps to return, bounding host memory on
-    long roll-outs without changing the trajectory.
+    long roll-outs without changing the trajectory. ``stochastic=False`` drops the
+    diffusion term and integrates the drift alone.
     """
     from sdecast.era5.cond import temporal_embeddings
 
@@ -57,6 +64,6 @@ def rollout_era5(prior_sde, x0: Tensor, static_cond: Tensor, n_ens: int = 1,
         time_cond = time_emb.view(n_steps, B, 4, 1, 1).expand(n_steps, B, 4, 1, 1)
 
     return solve_sde_time_dependent_cond(
-        prior_sde, x0, ts, tf, n_steps,
+        prior_sde, x0, ts, tf, n_steps, stochastic=stochastic,
         static_cond=static_cond, time_cond=time_cond, keep_steps=keep_steps,
     )
