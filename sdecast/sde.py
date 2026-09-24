@@ -27,6 +27,7 @@ class SDE(nn.Module, ABC):
         vol = self.vol(z, t, *args)
         return drift, vol
 
+
 @torch.no_grad()
 def solve_sde(
         sde: Callable[[Tensor, Tensor], tuple[Tensor, Tensor]],

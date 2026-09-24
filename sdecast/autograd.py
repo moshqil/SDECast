@@ -1,5 +1,5 @@
 import torch
-from torch import nn, Tensor
+from torch import Tensor
 
 @torch.compiler.disable
 def jvp(f, x: Tensor, v: Tensor) -> tuple[Tensor, ...]:

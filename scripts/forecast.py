@@ -14,8 +14,6 @@ ERA5, 24 h ahead at the paper's integration resolution::
 from __future__ import annotations
 
 import argparse
-import json
-import os
 import sys
 from pathlib import Path
 

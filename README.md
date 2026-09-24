@@ -228,9 +228,15 @@ checkpoints load without PyTorch Lightning, and nothing here imports wandb or
 cartopy. `pyshtools` (spectra), `cdsapi` (download), `scipy` and `netCDF4` (SQG
 generation) are optional extras.
 
-Runs on CPU, CUDA and Apple Silicon (MPS). One exception: the analytic SQG drift
-initialises in float64, which Metal does not support, so pass `--device cpu` if
-you use it.
+Device selection is automatic (CUDA, then MPS, then CPU) and overridable with
+`--device`. Verified here on CPU and Apple Silicon; the code is ordinary
+device-agnostic torch, and works on torch 2.6 through 2.14.
+
+One footnote: the differentiable torch SQG solver
+(`sdecast.sqg.torch_solver.SQGPrior`) computes in float64, which Metal does not
+support, so it raises on MPS -- use `--device cpu` for that one. It is not on the
+forecasting path; the numpy `ground_truth_drift` used by the analytic comparison
+runs on CPU regardless.
 
 ## Licence
 
