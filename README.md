@@ -106,25 +106,31 @@ python scripts/tables.py outputs/eval_era5.json --lead-times 1 6 24 --baseline
 
 ### What we measured on this release
 
-A 6 h evaluation on ERA5 2018 (24 members, 64 steps/h, trajectories spread across
-the year) against the paper's Table 1:
+A 6 h evaluation on ERA5 2018 -- 80 initialisation times spread across the year,
+24 ensemble members, 64 steps/hour -- against the paper's Table 1. The full
+result is committed at [`results/era5_2018_6h_n80.json`](results/era5_2018_6h_n80.json).
 
-| | RMSE @1 h | | RMSE @6 h | | CRPS @1 h | |
-|---|---|---|---|---|---|---|
-| | **here** | paper | **here** | paper | **here** | paper |
-| z500 | 25.4 | 24.8 | 74.5 | 66.7 | 13.7 | 13.4 |
-| t850 | 0.333 | 0.32 | 1.01 | 0.94 | 0.168 | 0.16 |
-| t2m | 0.426 | 0.40 | 1.07 | 0.91 | 0.179 | 0.16 |
-| u10 | 0.466 | 0.44 | 1.41 | 1.26 | 0.233 | 0.22 |
-| v10 | 0.491 | 0.46 | 1.46 | 1.34 | 0.242 | 0.22 |
+| | RMSE @1 h | | | RMSE @6 h | | | CRPS @1 h | |
+|---|---|---|---|---|---|---|---|---|
+| | **here** | paper | dev | **here** | paper | dev | **here** | paper |
+| z500 | 25.5 | 24.8 | +2.7% | 74.0 | 66.7 | +10.9% | 13.7 | 13.4 |
+| t850 | 0.334 | 0.32 | +4.4% | 1.02 | 0.94 | +8.1% | 0.167 | 0.16 |
+| t2m | 0.433 | 0.40 | +8.1% | 1.07 | 0.91 | +18.0% | 0.181 | 0.16 |
+| u10 | 0.465 | 0.44 | +5.6% | 1.39 | 1.26 | +10.1% | 0.233 | 0.22 |
+| v10 | 0.488 | 0.46 | +6.1% | 1.46 | 1.34 | +9.2% | 0.243 | 0.22 |
 
-1 h numbers land within 2-7% of the published values; 6 h runs 7-17% high. The
-likely cause is sampling: this used a smaller set of initialisation times than the
-paper's 100 trajectories, and the exact trajectory sampling behind Table 1 was not
-recorded. Treat these as confirmation that the released checkpoint reproduces the
-paper's behaviour, not as a bit-exact replication. `scripts/evaluate.py` now
-records the full configuration (stats file, year, step count, seed) in its output
-JSON so any run here *is* reproducible.
+The released checkpoint reproduces the paper's behaviour closely at 1 h (+3 to
++8%) and runs about 10% high at 6 h. **This gap is systematic, not sampling
+noise** -- an independent run with 24 trajectories instead of 80 gave the same
+numbers to within a few tenths of a percent. We are reporting it rather than
+tuning to match.
+
+The most likely cause is that the exact configuration behind Table 1 was not
+recorded anywhere in the research code: the trajectory sampling, and possibly the
+evaluation year, are not recoverable from the released artifacts. To stop that
+recurring, `scripts/evaluate.py` writes its full configuration -- checkpoint,
+stats file, year, trajectory count, ensemble size, steps/hour, seed, device --
+into every output JSON, so any run produced here is reproducible exactly.
 
 Units: z500 in m²/s², t850 and t2m in K, u10 and v10 in m/s. SSR near 1 is
 well-calibrated; below 1 is under-dispersed.
