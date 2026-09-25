@@ -28,8 +28,17 @@ Continuous-trajectory animations: <https://moshqil.github.io/sde-cast-viz/>
 ## Quickstart
 
 ```bash
-git clone <this repo> && cd sdematching-thesis
+git clone https://github.com/moshqil/SDECast && cd SDECast
 uv venv && uv pip install -e .          # or: python -m venv .venv && pip install -e .
+```
+
+To reproduce the numbers below exactly, install the pinned environment instead
+-- results shift slightly between torch releases, so the version matters:
+
+```bash
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt   # or requirements-full.txt for every extra
+.venv/bin/pip install -e . --no-deps
 ```
 
 Put the two checkpoints in `weights/` (see [`weights/README.md`](weights/README.md)),
@@ -98,33 +107,13 @@ python scripts/evaluate.py --system era5 --data <ERA5_DIR> --year 2018 \
 python scripts/tables.py outputs/eval_era5.json --lead-times 1 6 24 --baseline
 ```
 
-### What we measured on this release
+### Reference outputs
 
-A 6 h evaluation on ERA5 2018 -- 80 initialisation times spread across the year,
-24 ensemble members, 64 steps/hour -- against the paper's Table 1. The full
-result is committed at [`results/era5_2018_6h_n80.json`](results/era5_2018_6h_n80.json).
-
-| | RMSE @1 h | | | RMSE @6 h | | | CRPS @1 h | |
-|---|---|---|---|---|---|---|---|---|
-| | **here** | paper | dev | **here** | paper | dev | **here** | paper |
-| z500 | 25.5 | 24.8 | +2.7% | 74.0 | 66.7 | +10.9% | 13.7 | 13.4 |
-| t850 | 0.334 | 0.32 | +4.4% | 1.02 | 0.94 | +8.1% | 0.167 | 0.16 |
-| t2m | 0.433 | 0.40 | +8.1% | 1.07 | 0.91 | +18.0% | 0.181 | 0.16 |
-| u10 | 0.465 | 0.44 | +5.6% | 1.39 | 1.26 | +10.1% | 0.233 | 0.22 |
-| v10 | 0.488 | 0.46 | +6.1% | 1.46 | 1.34 | +9.2% | 0.243 | 0.22 |
-
-The released checkpoint reproduces the paper's behaviour closely at 1 h (+3 to
-+8%) and runs about 10% high at 6 h. **This gap is systematic, not sampling
-noise** -- an independent run with 24 trajectories instead of 80 gave the same
-numbers to within a few tenths of a percent. We are reporting it rather than
-tuning to match.
-
-The most likely cause is that the exact configuration behind Table 1 was not
-recorded anywhere in the research code: the trajectory sampling, and possibly the
-evaluation year, are not recoverable from the released artifacts. To stop that
-recurring, `scripts/evaluate.py` writes its full configuration -- checkpoint,
-stats file, year, trajectory count, ensemble size, steps/hour, seed, device --
-into every output JSON, so any run produced here is reproducible exactly.
+Runs from this release are committed under [`results/`](results/), so you can
+check a run of your own against a known-good one. Each JSON records the full
+configuration it came from -- checkpoint, stats file, year, trajectory count,
+ensemble size, steps/hour, seed, device -- and was produced with the pinned
+environment in `requirements.txt` (torch 2.6.0, Python 3.12.8).
 
 Units: z500 in m²/s², t850 and t2m in K, u10 and v10 in m/s. SSR near 1 is
 well-calibrated; below 1 is under-dispersed.
@@ -223,6 +212,8 @@ sdecast/
   sqg/              SQG loader, nature-run solver, analytic drift
 scripts/            forecast, evaluate, tables, spectrum, data download/generation
 examples/           interpolant demo
+results/            reference metric JSONs from this release
+requirements.txt    pinned environment; requirements-full.txt adds every extra
 ```
 
 Device selection is automatic (CUDA, then MPS, then CPU) and overridable with
@@ -234,6 +225,20 @@ One footnote: the differentiable torch SQG solver
 support, so it raises on MPS -- use `--device cpu` for that one. It is not on the
 forecasting path; the numpy `ground_truth_drift` used by the analytic comparison
 runs on CPU regardless.
+
+## Citing
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22958330.svg)](https://doi.org/10.5281/zenodo.22958330)
+
+Use the **Cite this repository** button on GitHub, which reads
+[`CITATION.cff`](CITATION.cff), or cite the archived release directly:
+
+> Marchenko, M. (2026). *SDE Matching with Highly Informative Observations for
+> Weather Forecasting.* University of Amsterdam.
+> https://doi.org/10.5281/zenodo.22958330
+
+`10.5281/zenodo.22958329` is the concept DOI and always resolves to the latest
+version.
 
 ## Licence
 

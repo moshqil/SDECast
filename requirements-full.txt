@@ -1,0 +1,11 @@
+# Core plus every optional feature: ERA5 spectra, plotting, Copernicus
+# downloads, and SQG nature-run generation.
+#
+#   .venv/bin/pip install -r requirements-full.txt
+
+-r requirements.txt
+
+pyshtools==4.14.1
+matplotlib==3.10.1
+cdsapi==0.7.7
+scipy==1.16.3

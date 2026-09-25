@@ -1,0 +1,90 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the archived release below."
+title: "SDE-Cast"
+abstract: >-
+  Inference code and released checkpoints for SDE-Cast, a weather forecasting
+  model that learns a stochastic differential equation directly on weather
+  states. Because the learnt drift and diffusion are defined continuously in
+  time, forecasts can be produced at arbitrary temporal resolution without
+  retraining, and ensembles arise from repeated SDE sampling rather than a
+  separate perturbation scheme. Trained with SDE Matching, a simulation-free
+  algorithm for neural SDEs. Evaluated on ERA5 reanalysis and on surface
+  quasi-geostrophic turbulence, where the true dynamics are known.
+type: software
+version: 1.0.0
+date-released: "2026-09-25"
+license: CC-BY-NC-SA-4.0
+repository-code: "https://github.com/moshqil/SDECast"
+url: "https://moshqil.github.io/sde-cast-viz/"
+doi: "10.5281/zenodo.22958330"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22958330"
+    description: "Archived v1 release"
+  - type: doi
+    value: "10.5281/zenodo.22958329"
+    description: "Concept DOI, always resolves to the latest version"
+keywords:
+  - weather forecasting
+  - neural stochastic differential equations
+  - SDE matching
+  - probabilistic forecasting
+  - ensemble forecasting
+  - ERA5
+  - surface quasi-geostrophic turbulence
+  - machine learning
+authors:
+  - given-names: Maria
+    family-names: Marchenko
+    affiliation: "University of Amsterdam"
+    orcid: "https://orcid.org/0009-0001-7960-4223"
+  - given-names: Martin
+    family-names: Andrae
+    affiliation: "Linköping University"
+  - given-names: Fredrik
+    family-names: Lindsten
+    affiliation: "Linköping University"
+  - given-names: "Christian A."
+    family-names: Naesseth
+    affiliation: "University of Amsterdam"
+preferred-citation:
+  type: thesis
+  title: "SDE Matching with Highly Informative Observations for Weather Forecasting"
+  year: 2026
+  month: 9
+  institution:
+    name: "University of Amsterdam"
+  doi: "10.5281/zenodo.22958330"
+  url: "https://zenodo.org/records/22958330"
+  authors:
+    - given-names: Maria
+      family-names: Marchenko
+      affiliation: "University of Amsterdam"
+      orcid: "https://orcid.org/0009-0001-7960-4223"
+references:
+  - type: conference-paper
+    title: "SDE Matching: Scalable and Simulation-Free Training of Latent Stochastic Differential Equations"
+    year: 2025
+    collection-title: "Proceedings of the 42nd International Conference on Machine Learning"
+    url: "https://openreview.net/forum?id=0Hd1lh52Fi"
+    authors:
+      - given-names: Grigory
+        family-names: Bartosh
+      - given-names: Dmitry
+        family-names: Vetrov
+      - given-names: "Christian A."
+        family-names: Naesseth
+  - type: conference-paper
+    title: "Elucidating the Design Space of Diffusion-Based Generative Models"
+    year: 2022
+    collection-title: "Advances in Neural Information Processing Systems 35"
+    url: "https://github.com/NVlabs/edm"
+    authors:
+      - given-names: Tero
+        family-names: Karras
+      - given-names: Miika
+        family-names: Aittala
+      - given-names: Timo
+        family-names: Aila
+      - given-names: Samuli
+        family-names: Laine

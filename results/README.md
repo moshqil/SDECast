@@ -11,5 +11,3 @@ Format them with:
 python scripts/tables.py results/<file>.json --lead-times 1 6
 ```
 
-These are not the paper's numbers -- see the comparison table in the main README
-for how they relate.

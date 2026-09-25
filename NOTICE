@@ -36,8 +36,9 @@ Citation
 
 If you use this code, please cite:
 
-    Marchenko, M., Andrae, M., Lindsten, F., and Naesseth, C. A.
-    "SDE-Cast: Modeling Weather as a Neural SDE."
+    Marchenko, M. (2026). "SDE Matching with Highly Informative Observations
+    for Weather Forecasting." University of Amsterdam.
+    https://doi.org/10.5281/zenodo.22958330
 
 The training method it builds on:
 
