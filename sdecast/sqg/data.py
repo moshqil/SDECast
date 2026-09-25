@@ -1,13 +1,3 @@
-"""SQG trajectory loader for inference.
-
-Nature-run trajectories are ``.npy`` arrays of shape ``(T, 2, nx, nx)`` holding
-surface potential vorticity on the two bounding surfaces. Training standardises
-by ``data_std`` (2660), so inference must too.
-
-Frame spacing is encoded in the filename (``sqg_N64_1hrly_...``). Upstream globbed
-``sqg_N{h}hrly_*`` which silently missed files written as ``1.0hrly``; this matches
-any spacing and reads it back from the name.
-"""
 from __future__ import annotations
 
 import glob
@@ -26,16 +16,6 @@ _SPACING_RE = re.compile(r"_N(\d+)_([0-9.]+)hrly_")
 
 
 class SQGDataset(Dataset):
-    """SQG nature-run trajectories.
-
-    Args:
-        data_path: a ``.npy`` file, or a directory searched for ``sqg_N*.npy``
-            (also one level down, matching the ``<split>/<nx>/`` layout).
-        frame_hours: hours between stored frames. Inferred from the filename when
-            not given.
-        standardize: divide by ``data_std``, as at training time.
-    """
-
     def __init__(self, data_path, frame_hours: Optional[float] = None,
                  nx: int = 64, standardize: bool = True,
                  num_trajectories: Optional[int] = None):
@@ -73,7 +53,7 @@ class SQGDataset(Dataset):
         if p.is_file():
             return [str(p)]
         hits = sorted(glob.glob(str(p / f"sqg_N{nx}_*.npy")))
-        if not hits:  # tolerate the <split>/<nx>/ layout
+        if not hits:
             hits = sorted(glob.glob(str(p / "**" / f"sqg_N{nx}_*.npy"), recursive=True))
         return hits
 
@@ -86,10 +66,6 @@ class SQGDataset(Dataset):
         return len(self.files)
 
     def get_trajectory(self, idx: int = 0, length: int = 24) -> torch.Tensor:
-        """Return ``(length + 1, C, nx, nx)`` standardised frames from file ``idx``.
-
-        Frame ``k`` is at lead ``k * frame_hours`` hours.
-        """
         arr = np.load(self.files[idx % len(self.files)])
         if arr.shape[0] < length + 1:
             raise ValueError(

@@ -1,4 +1,3 @@
-"""SDE-Cast: weather forecasting with a neural SDE (inference only)."""
 from sdecast.checkpoint import get_device, load_hparams, load_sde_cast
 from sdecast.rollout import rollout_era5, rollout_sqg
 

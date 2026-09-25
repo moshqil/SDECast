@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-"""Turn evaluate.py JSON into Markdown / CSV / LaTeX tables.
-
-Example
--------
-    python scripts/tables.py outputs/eval_era5.json --lead-times 1 6 24
-"""
 from __future__ import annotations
 
 import argparse

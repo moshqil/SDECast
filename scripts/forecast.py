@@ -1,16 +1,4 @@
 #!/usr/bin/env python
-"""Roll out an ensemble forecast with SDE-Cast and save it.
-
-Examples
---------
-SQG, 6 h ahead, 8 members, coarse integration (fast smoke test)::
-
-    python scripts/forecast.py --system sqg --lead-hours 6 --n-ens 8 --steps-per-hour 4
-
-ERA5, 24 h ahead at the paper's integration resolution::
-
-    python scripts/forecast.py --system era5 --lead-hours 24 --n-ens 8 --steps-per-hour 64
-"""
 from __future__ import annotations
 
 import argparse
@@ -88,7 +76,6 @@ def forecast_sqg(args, model, hp, data, device):
     from sdecast.sqg.data import SQGDataset
 
     ds = SQGDataset(data, nx=hp["nx"])
-    # The SQG model's time unit is H_HOURS hours; frames are frame_hours apart.
     n_frames = int(round(args.lead_hours / ds.frame_hours))
     truth = ds.get_trajectory(args.index, length=n_frames).to(device)
     x0 = truth[0:1]

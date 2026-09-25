@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-"""Merge the monthly ERA5 downloads into one file per year.
-
-Concatenates the 12 single-level and 12 pressure-level files along time and lifts
-geopotential at 500 hPa and temperature at 850 hPa into top-level ``z500`` and
-``t850`` variables, giving the five channels the model expects.
-
-Levels are selected by label, never by position: the downloaded files store
-pressure_level as [850, 500], so indexing positionally silently swaps them.
-
-Example
--------
-    python scripts/merge_era5.py --years 2018 --output-dir data/era5
-"""
 from __future__ import annotations
 
 import argparse

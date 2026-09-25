@@ -1,23 +1,4 @@
 #!/usr/bin/env python
-"""Download hourly ERA5 from the Copernicus Climate Data Store.
-
-Needs a free CDS account and a ``~/.cdsapirc`` with your API key:
-https://cds.climate.copernicus.eu/how-to-api
-
-Downloads one file per month per variable group, then ``scripts/merge_era5.py``
-concatenates each year into ``era5_1h_<grid>_<year>.nc``. Both steps are resumable:
-a file that already exists is skipped, and each download lands on a ``.part`` path
-that is renamed only on success, so an interrupted run never leaves a truncated
-file that looks finished.
-
-Expect roughly 190 MB per year at 5.625 deg. CDS queue times dominate; being
-polite with --workers is better than hammering the queue.
-
-Example
--------
-    python scripts/download_era5.py --years 2018 --output-dir data/era5
-    python scripts/merge_era5.py    --years 2018 --output-dir data/era5
-"""
 from __future__ import annotations
 
 import argparse
@@ -53,7 +34,7 @@ def retrieve(client, dataset, request, target: Path) -> bool:
         return False
     part = target.with_suffix(target.suffix + ".part")
     client.retrieve(dataset, request, str(part))
-    os.replace(part, target)   # atomic: a partial file never looks complete
+    os.replace(part, target)
     return True
 
 

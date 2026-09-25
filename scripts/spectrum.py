@@ -1,19 +1,4 @@
 #!/usr/bin/env python
-"""Kinetic-energy power spectra of forecasts against ground truth.
-
-ERA5 uses a spherical-harmonic (u10, v10) KE spectrum via pyshtools; SQG uses the
-radially averaged 2-D power spectrum of the periodic domain. Because the model is
-continuous in time it can be evaluated at lead times it never saw in training,
-including sub-hourly ones (ground truth is hourly, so those have no truth frame
-and are reported model-only).
-
-The spectrum is where blurring shows up: a forecast can look good in RMSE while
-having lost its high-wavenumber energy.
-
-Example
--------
-    python scripts/spectrum.py --system era5 --lead-times 1 6 24 --n-trajectories 4
-"""
 from __future__ import annotations
 
 import argparse
@@ -107,7 +92,6 @@ def spectrum_era5(args, model, hp, device):
             for m in range(args.n_ens):
                 deg, e = ke_spectrum_from_state(path[j, m].cpu(), mean, std, lat=ds.lat)
                 degrees = deg; model_spec[h].append(e)
-            # Ground truth is hourly; a fractional lead has no truth frame.
             if abs(h - round(h)) < 1e-6 and round(h) < truth.shape[0]:
                 _, e = ke_spectrum_from_state(truth[round(h)].cpu(), mean, std, lat=ds.lat)
                 truth_spec[h].append(e)
@@ -135,7 +119,6 @@ def spectrum_sqg(args, model, hp, device):
                                ts=0.0, tf=tf, steps_per_unit_time=steps / tf)
         for h in args.lead_times:
             k = min(path.shape[0] - 1, int(round(h * args.steps_per_hour)))
-            # (M, C, R) -> average over members and channels
             prof = radial_averaged_power(ds.denormalize(path[k].cpu()))
             wavenumbers = np.arange(1, prof.shape[-1] + 1)
             model_spec[h].append(prof.reshape(-1, prof.shape[-1]).mean(0).numpy())
@@ -161,7 +144,6 @@ def _pack(axis, model_spec, truth_spec, leads, axis_name):
 
 
 def print_ratio(result):
-    """Integrated model/truth energy ratio -- below 1 means a blurred forecast."""
     print(f"\n{'lead (h)':>10s}  {'E_model/E_truth':>16s}  {'high-k half':>12s}")
     for h, blocks in result["leads"].items():
         m, t = blocks["model"], blocks["truth"]

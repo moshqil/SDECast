@@ -1,14 +1,4 @@
 #!/usr/bin/env python
-"""Download the static ERA5 fields (land-sea mask + surface geopotential).
-
-The released ERA5 checkpoint conditions on these two fields, so they are required
-for inference, not optional. They are time-invariant: one timestamp is enough, and
-the file only needs downloading once per grid.
-
-Example
--------
-    python scripts/download_masks.py --output-dir data/era5
-"""
 from __future__ import annotations
 
 import argparse

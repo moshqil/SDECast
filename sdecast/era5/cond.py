@@ -8,26 +8,8 @@ import numpy as np
 Weighted RMSE and CRPS from https://github.com/Rose-STL-Lab/u-cast/
 """
 
-# ──────────────────────────────────────────────────────────────────────────
-# TENSOR ORIENTATION CONVENTION (ERA5)
-# Model-space tensors are (..., lat, lon): latitude on the 2nd-to-last axis (H),
-# longitude on the last axis (W). Longitude is the periodic axis — SongUNet
-# circular-pads the last (W) axis, so lon MUST stay last for the wrap to be
-# physically correct. The dataloader crops latitude 33 -> 32 on the H axis.
-#
-# EXCEPTION: the area-weighted metric helpers (_area_weighted_*) follow
-# U-Cast's (..., lon, lat) layout — lat is the LAST axis, where the cosine
-# weights broadcast. Callers MUST transpose lat/lon before calling them
-# (see evaluate.compute_per_channel_metrics).
-# ──────────────────────────────────────────────────────────────────────────
 
 def crop_pole_lat(arr, lat_axis=-2):
-    """Drop the redundant pole row of the 5.625° grid (33 -> 32 latitudes).
-
-    Args:
-        arr: array/tensor with latitude on `lat_axis`.
-        lat_axis: the latitude axis (default -2, the model-space H axis).
-    """
     if arr.shape[lat_axis] != 33:
         return arr
     idx = [slice(None)] * arr.ndim
@@ -36,12 +18,6 @@ def crop_pole_lat(arr, lat_axis=-2):
 
 
 def compute_area_weights(lat: np.ndarray) -> torch.Tensor:
-    """Compute cosine-latitude area weights, normalized to mean=1.
-
-    Args:
-        lat: 1-D latitudes in degrees, shape (lat,).
-    Returns: (lat,) weights, to be broadcast over the latitude axis.
-    """
     weights = np.cos(np.deg2rad(lat))
     weights = weights / weights.mean()
     return torch.from_numpy(weights.astype(np.float32))
@@ -91,16 +67,11 @@ def compute_and_save_normalization(data_path, years, out_file='era5_stats.pt', v
         print(f"  {var}: mean={m:.6g}, std={s:.6g}")
 
 def load_era5_masks(mask_file):
-    """Load land-sea mask and geopotential from an ERA5 mask netcdf file.
-    Returns a tensor of shape (C_mask, lat, lon) where C_mask=2 (lsm, z).
-    """
     with xr.open_dataset(mask_file, engine='h5netcdf') as ds:
         orography_var = 'orography' if 'orography' in ds.variables else 'z'
 
         def _load_lat_lon(name):
             da = ds[name]
-            # collapse any non-spatial dims (e.g. the singleton valid_time axis);
-            # assert they're singletons so we never silently drop real data
             extra = [d for d in da.dims if d not in ('latitude', 'longitude')]
             for d in extra:
                 assert da.sizes[d] == 1, (
@@ -108,8 +79,6 @@ def load_era5_masks(mask_file):
                 )
             if extra:
                 da = da.isel({d: 0 for d in extra})
-            # enforce (lat, lon) regardless of stored order: WB2 fine masks are
-            # stored (lon, lat), coarse copernicus masks (lat, lon)
             return da.transpose('latitude', 'longitude').values
 
         masks = np.stack(
@@ -120,7 +89,7 @@ def load_era5_masks(mask_file):
             m, s = masks[c].mean(), masks[c].std()
             masks[c] = (masks[c] - m) / (s + 1e-8)
 
-        masks = crop_pole_lat(masks)  # (C, lat, lon): lat axis is -2
+        masks = crop_pole_lat(masks)
 
         return torch.tensor(masks, dtype=torch.float32)
     
@@ -149,7 +118,6 @@ def temporal_embeddings(t_days):
 
 
 def spatial_embeddings_grid(lat_1d_deg, lon_1d_deg):
-    """Build spatial embeddings on the lat/lon grid. Returns (6, lat, lon)."""
     lon_grid, lat_grid = np.meshgrid(np.asarray(lon_1d_deg), np.asarray(lat_1d_deg))
     lat_t = torch.tensor(lat_grid, dtype=torch.float32)
     lon_t = torch.tensor(lon_grid, dtype=torch.float32)
@@ -157,31 +125,21 @@ def spatial_embeddings_grid(lat_1d_deg, lon_1d_deg):
 
 
 def temporal_embeddings_grid(t_days, H, W):
-    """Expand temporal embeddings across a spatial grid. Returns (B, 4, lat, lon)."""
     B = t_days.shape[0]
     return temporal_embeddings(t_days).view(B, 4, 1, 1).expand(B, 4, H, W)
 
 
 def build_static_era5_cond(spat_emb, masks=None):
-    """Concatenate spatial embedding with optional masks along the channel dim.
-    All inputs/outputs are (C, lat, lon); returns (C_static, lat, lon).
-    """
     if masks is None:
         return spat_emb
     return torch.cat([spat_emb, masks], dim=0)
 
 
 def assemble_era5_cond(time_emb, static_cond=None):
-    """Assemble full ERA5 cond tensor: [time_emb, static_cond] along channel dim.
-    time_emb is (B, 4, lat, lon), static_cond (C_static, lat, lon); returns
-    (B, C_cond, lat, lon).
-    """
     if static_cond is None:
         return time_emb
     if static_cond.dim() == time_emb.dim() - 1:
         static_cond = static_cond.unsqueeze(0).expand(time_emb.shape[0], *static_cond.shape)
-    # time_emb may carry size-1 spatial dims (broadcast per step during rollout);
-    # expand to the static grid before concatenating.
     if time_emb.shape[-2:] != static_cond.shape[-2:]:
         time_emb = time_emb.expand(*time_emb.shape[:-2], *static_cond.shape[-2:])
     return torch.cat([time_emb, static_cond], dim=1)

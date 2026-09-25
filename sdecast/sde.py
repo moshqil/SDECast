@@ -1,10 +1,3 @@
-"""SDE interface and Euler-Maruyama solvers.
-
-``solve_sde`` is the unconditional sampler (SQG); ``solve_sde_time_dependent_cond``
-assembles the per-step ERA5 conditioning and supports ``keep_steps`` so long
-roll-outs need not buffer every frame. Pass ``stochastic=False`` to integrate the
-probability-flow ODE (drift only) instead.
-"""
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, Sequence
 
@@ -73,14 +66,6 @@ def solve_sde_time_dependent_cond(
         time_cond: Optional[Sequence[Tensor]] = None,
         keep_steps: Optional[Sequence[int]] = None,
 ) -> Tensor:
-    """SDE solver for ERA5 where the conditioning at step i is
-    concat([time_cond[i], static_cond]) along the channel dim.
-
-    If ``keep_steps`` is given (step indices in ``[0, n_steps]``), only those
-    frames are stored, returned in the requested order. This avoids holding the
-    full ``(n_steps + 1, *z.shape)`` trajectory on the host, which is
-    prohibitive at high resolution. Defaults to keeping every step.
-    """
     B = z.shape[0]
     tt = torch.linspace(ts, tf, n_steps + 1, device=z.device)[:-1]
 
@@ -89,7 +74,6 @@ def solve_sde_time_dependent_cond(
 
     if keep_steps is None:
         keep_steps = range(n_steps + 1)
-    # step index -> output positions (a step may appear more than once)
     positions: dict[int, list[int]] = {}
     keep_list = [int(s) for s in keep_steps]
     for p, s in enumerate(keep_list):
@@ -105,8 +89,6 @@ def solve_sde_time_dependent_cond(
 
     store(0, z)
 
-    # Upstream called load_spatial_embeddings() with no argument here, which is a
-    # TypeError; conditioning is required for this solver, so refuse explicitly.
     if static_cond is None:
         raise ValueError(
             "solve_sde_time_dependent_cond requires static_cond. Build it with "

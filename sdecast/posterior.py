@@ -13,13 +13,9 @@ class PosteriorDebugInfo:
     s_cap: Any = None
 
 class Interpolant(nn.Module):
-    """
-    Base class. Defines m and s given x0, x1, t.
-    """
     def __init__(self):
         super().__init__()
 
-        # default fields, since in some places in the code they are called regardless of interpolant type
         self.cond_dt = False
         self.s_max = 1.0
         self.sample_length = 2
@@ -33,9 +29,6 @@ class Interpolant(nn.Module):
         return t_n, t_p
 
     def forward(self, xs: Tensor, t: Tensor, dt: Tensor, cond: Optional[Tensor] = None) -> tuple[Tensor, Tensor]:
-        """
-        Must return (m, s).
-        """
         raise NotImplementedError
     
     def linear_interpolant(self, xs: Tensor, t: Tensor, dt: Tensor) -> Tensor:
@@ -46,12 +39,10 @@ class Interpolant(nn.Module):
         return x0 * (1 - t_n) + x1 * t_n
     
     def _get_time_kwargs(self, expressive: bool, noise_dim: int, channel_mult_emb: int) -> dict:
-        """Helper to toggle expressive time embeddings."""
         if expressive:
             return {
                 'embedding_type': 'fourier',
                 'channel_mult_noise': 2
-                # emb_activation is SongUNet's default
             }
         else:
             return {
@@ -95,7 +86,6 @@ class LearnableInterpolant(Interpolant):
         self.net = SongUNet(img_resolution=nx, in_channels=self.context_size*channels + cond_channels, out_channels=self.out*channels,
                      encoder_type='residual', decoder_type='standard',
                      resample_filter=[1, 3, 3, 1], model_channels=hidden_channels,
-                     # SQG (cond_channels==0) is doubly-periodic; ERA5 wraps longitude only.
                      circular_padding=(True, True) if cond_channels == 0 else (True, False),
                      channel_mult=channel_mult, attn_levels=attn_levels, time_emb=self.cond_dt,
                      **time_kwargs)
@@ -132,7 +122,6 @@ class LearnableInterpolantV2(Interpolant):
         self.net = SongUNet(img_resolution=nx, in_channels=self.context_size*channels + cond_channels, out_channels=self.out*channels,
                      encoder_type='residual', decoder_type='standard',
                      resample_filter=[1, 3, 3, 1], model_channels=hidden_channels,
-                     # SQG (cond_channels==0) is doubly-periodic; ERA5 wraps longitude only.
                      circular_padding=(True, True) if cond_channels == 0 else (True, False),
                      channel_mult=channel_mult, attn_levels=attn_levels, time_emb=self.cond_dt,
                      **time_kwargs)
@@ -158,14 +147,13 @@ class FreeInterpolant(Interpolant):
         self.sample_length = sample_length
         self.context_size = context_size
         self.cond_channels = cond_channels
-        self.out = 2 # TODO: for m and s, change for different s
+        self.out = 2
 
         time_kwargs = self._get_time_kwargs(expressive_time_emb, noise_dim, channel_mult_emb)
         channel_mult, attn_levels = attn_config_for_resolution(nx)
 
         self.net = SongUNet(img_resolution=nx, in_channels=self.context_size*channels + cond_channels, out_channels=self.out*channels,
                      encoder_type='residual', decoder_type='standard', resample_filter=[1, 3, 3, 1],
-                     # SQG (cond_channels==0) is doubly-periodic; ERA5 wraps longitude only.
                      circular_padding=(True, True) if cond_channels == 0 else (True, False),
                      model_channels=hidden_channels, channel_mult=channel_mult, attn_levels=attn_levels, time_emb=cond_dt,
                      **time_kwargs)
@@ -190,14 +178,13 @@ class FixedInterpolant(Interpolant):
         self.sample_length = sample_length
         self.context_size = context_size
         self.cond_channels = cond_channels
-        self.out = 2 # TODO: for m and s, change for different s
+        self.out = 2
 
         time_kwargs = self._get_time_kwargs(expressive_time_emb, noise_dim, channel_mult_emb)
         channel_mult, attn_levels = attn_config_for_resolution(nx)
 
         self.net = SongUNet(img_resolution=nx, in_channels=self.context_size*channels + cond_channels, out_channels=self.out*channels,
                      encoder_type='residual', decoder_type='standard', resample_filter=[1, 3, 3, 1],
-                     # SQG (cond_channels==0) is doubly-periodic; ERA5 wraps longitude only.
                      circular_padding=(True, True) if cond_channels == 0 else (True, False),
                      model_channels=hidden_channels, channel_mult=channel_mult, attn_levels=attn_levels, time_emb=cond_dt,
                      **time_kwargs)
@@ -229,14 +216,13 @@ class NewFixedInterpolant(Interpolant):
 
         self.channels = channels
         self.s_channels = s_channels
-        self.out = 1 + s_channels # TODO: for m and s, change for different s
+        self.out = 1 + s_channels
 
         time_kwargs = self._get_time_kwargs(expressive_time_emb, noise_dim, channel_mult_emb)
         channel_mult, attn_levels = attn_config_for_resolution(nx)
 
         self.net = SongUNet(img_resolution=nx, in_channels=self.context_size*self.channels + cond_channels, out_channels=self.out*self.channels,
                      encoder_type='residual', decoder_type='standard', resample_filter=[1, 3, 3, 1],
-                     # SQG (cond_channels==0) is doubly-periodic; ERA5 wraps longitude only.
                      circular_padding=(True, True) if cond_channels == 0 else (True, False),
                      model_channels=hidden_channels, channel_mult=channel_mult, attn_levels=attn_levels, time_emb=cond_dt,
                      **time_kwargs)
@@ -249,10 +235,6 @@ class NewFixedInterpolant(Interpolant):
 
         t_n, t_p = self.get_t(t, dt)
 
-        # assuming constant volatility g: float and a Weiner process,
-        # the optimal s(t) should be:
-        # sqrt(g**2 * t * (dt - t) / dt) = sqrt(g**2 * t_p * dt)
-        # so s_max should be sqrt(g**2 * dt) = g * sqrt(dt)
         s = self.activation(s_res) * self.s_max * t_p + self.s_min
         m = self.linear_interpolant(xs, t, dt) + t_p * m_res
 
@@ -275,14 +257,13 @@ class LinearInterpolantWithLearnableS(Interpolant):
 
         self.channels = channels
         self.s_channels = s_channels
-        self.out = s_channels  # only s, m is purely linear (no learnable residual)
+        self.out = s_channels
 
         time_kwargs = self._get_time_kwargs(expressive_time_emb, noise_dim, channel_mult_emb)
         channel_mult, attn_levels = attn_config_for_resolution(nx)
 
         self.net = SongUNet(img_resolution=nx, in_channels=self.context_size*self.channels + cond_channels, out_channels=self.out*self.channels,
                      encoder_type='residual', decoder_type='standard', resample_filter=[1, 3, 3, 1],
-                     # SQG (cond_channels==0) is doubly-periodic; ERA5 wraps longitude only.
                      circular_padding=(True, True) if cond_channels == 0 else (True, False),
                      model_channels=hidden_channels, channel_mult=channel_mult, attn_levels=attn_levels, time_emb=cond_dt,
                      **time_kwargs)
@@ -299,11 +280,6 @@ class LinearInterpolantWithLearnableS(Interpolant):
 
 
 class RadialFixedInterpolant(Interpolant):
-    """main's spectral/spatial-volatility variant of the fixed interpolant, preserved
-    as a separate class (SQG-only). Adapted to the branch's SongUNet API (attn_levels
-    via attn_config_for_resolution). Select with interpolant_type='radial_fixed'; the
-    spectral=/spatial= flags (at least one must be True) must be wired through
-    PosteriorAffine kwargs for a given experiment."""
     def __init__(self, nx: int, channels: int, hidden_channels: int, s_max: float = 1, s_min: float = 0.0, cond_dt=False, sample_length=1, m_phi=None, s_phi=None,
                  noise_dim=32, channel_mult_emb=1, context_size=2, expressive_time_emb: bool = False, s_channels: int = 1, spectral: bool = False, spatial: bool = False, circular_padding=(True, True), **kwargs):
         super().__init__()
@@ -386,28 +362,21 @@ INTERPOLANT_MAP = {
 }
 
 class SigmaParam(nn.Module):
-    """Abstract interface for any sigma parametrization."""
-
     def __init__(self, channels: int, *args, **kwargs):
         super().__init__()
         self.s_channels = 1
         self.channels = channels
 
     def apply_s(self, s: Tensor, eps: Tensor) -> Tensor:
-        """Return s@eps, with optional return of eps."""
         raise NotImplementedError
     
     def apply_ds(self, s: Tensor, ds: Tensor, eps: Tensor) -> Tensor:
-        """Return ds@eps, with optional return of eps."""
         raise NotImplementedError
 
     def score(self, s: Any, eps: Tensor, loss_config) -> Tensor:
-        """Compute the correct score: -Sigma^{-1}(z-m)."""
         raise NotImplementedError
 
 class SpatialDiagSigma(SigmaParam):
-    """Spatial diagonal sigma parametrization."""
-
     def apply_s(self, s: Tensor, eps: Tensor) -> Tensor:
         z_noise = s * eps
         return z_noise
@@ -422,29 +391,25 @@ class SpatialDiagSigma(SigmaParam):
 
 
 class SpectralDiagSigma(SigmaParam):
-    """Spectral Diagonal sigma parametrization."""
-
     def apply_s(self, s: Tensor, eps: Tensor) -> Tensor:
-        eps = torch.fft.fft2(eps, norm="ortho") # TODO This could probably be done just once
+        eps = torch.fft.fft2(eps, norm="ortho")
         z_noise = s * eps
         z_noise = torch.fft.ifft2(z_noise, norm="ortho").real        
         return z_noise
 
     def apply_ds(self, s: Tensor, ds: Tensor, eps: Tensor) -> Tensor:
-        eps = torch.fft.fft2(eps, norm="ortho") # TODO This could probably be done just once
+        eps = torch.fft.fft2(eps, norm="ortho")
         z_noise = ds * eps
         z_noise = torch.fft.ifft2(z_noise, norm="ortho").real
         return z_noise
 
     def score(self, s: Any, eps: Tensor, loss_config) -> Tensor:
-        eps = torch.fft.fft2(eps, norm="ortho") # TODO This could probably be done just once
+        eps = torch.fft.fft2(eps, norm="ortho")
         score = eps / torch.clamp(s, min=loss_config.clamp_s)
         score = torch.fft.ifft2(score, norm="ortho").real
         return -score
 
 class SpatialSpectralDiagSigma(SigmaParam):
-    """sigma = SD"""
-
     def __init__(self, channels: int, *args, **kwargs):
         super().__init__(channels, *args, **kwargs)
         self.s_channels = 2
@@ -453,27 +418,22 @@ class SpatialSpectralDiagSigma(SigmaParam):
     def apply_s(self, s: Tensor, eps: Tensor) -> Tensor:
         D, C = s[:, :self.channels], s[:, self.channels:]        
         
-        # Spatial
         res = D * eps
         
-        # Spectral
         res = torch.fft.fft2(res, norm="ortho")
         res = C * res
         res = torch.fft.ifft2(res, norm="ortho").real
         return res
 
     def apply_ds(self, s: Tensor, ds: Tensor, eps: Tensor) -> Tensor:
-        """dS D + S dD"""
         D, C = s[:, :self.channels], s[:, self.channels:]
         dD, dC = ds[:, :self.channels], ds[:, self.channels:]
 
-        # Term 1: dS D eps
         term1 = D * eps
         term1 = torch.fft.fft2(term1, norm="ortho")
         term1 = dC * term1
         term1 = torch.fft.ifft2(term1, norm="ortho").real
 
-        # Term 2: S dD eps
         term2 = dD * eps
         term2 = torch.fft.fft2(term2, norm="ortho")
         term2 = C * term2
@@ -496,8 +456,6 @@ class SpatialSpectralDiagSigma(SigmaParam):
 
 
 class SpectralSpatialDiagSigma(SigmaParam):
-    """sigma = DS"""
-
     def __init__(self, channels: int, *args, **kwargs):
         super().__init__(channels, *args, **kwargs)
         self.s_channels = 2
@@ -506,29 +464,24 @@ class SpectralSpatialDiagSigma(SigmaParam):
     def apply_s(self, s: Tensor, eps: Tensor) -> Tensor:
         D, C = s[:, :self.channels], s[:, self.channels:]        
 
-        # Spectral
         res = torch.fft.fft2(eps, norm="ortho")
         res = C * res
         res = torch.fft.ifft2(res, norm="ortho").real
 
-        # Spatial
         res = D * res
 
         return res
 
     def apply_ds(self, s: Tensor, ds: Tensor, eps: Tensor) -> Tensor:
-        """dD S + D dS"""
         D, C = s[:, :self.channels], s[:, self.channels:]
         dD, dC = ds[:, :self.channels], ds[:, self.channels:]
 
         eps_hat = torch.fft.fft2(eps, norm="ortho")
 
-        # Term 1: dD S eps
         term1 = C * eps_hat
         term1 = torch.fft.ifft2(term1, norm="ortho").real
         term1 = dD * term1
 
-        # Term 2: D dS eps
         term2 = dC * eps_hat
         term2 = torch.fft.ifft2(term2, norm="ortho").real
         term2 = D * term2
@@ -549,8 +502,6 @@ class SpectralSpatialDiagSigma(SigmaParam):
         return -res
     
 class SqrtSpatialSpectralDiagSigma(SigmaParam):
-    """sigma = SD"""
-
     def __init__(self, channels: int, *args, **kwargs):
         super().__init__(channels, *args, **kwargs)
         self.s_channels = 2
@@ -559,30 +510,25 @@ class SqrtSpatialSpectralDiagSigma(SigmaParam):
     def apply_s(self, s: Tensor, eps: Tensor) -> Tensor:
         D, C = s[:, :self.channels], s[:, self.channels:]        
         
-        # Spatial
         res = torch.sqrt(D) * eps
         
-        # Spectral
         res = torch.fft.fft2(res, norm="ortho")
         res = torch.sqrt(C) * res
         res = torch.fft.ifft2(res, norm="ortho").real
         return res
 
     def apply_ds(self, s: Tensor, ds: Tensor, eps: Tensor) -> Tensor:
-        """dS D + S dD"""
         D, C = s[:, :self.channels], s[:, self.channels:]
         dD, dC = ds[:, :self.channels], ds[:, self.channels:]
 
         sqrtD = torch.clamp(torch.sqrt(D), min=1e-8)
         sqrtC = torch.clamp(torch.sqrt(C), min=1e-8)
 
-        # Term 1: dS D eps
         term1 = sqrtD * eps
         term1 = torch.fft.fft2(term1, norm="ortho")
         term1 = 0.5 * dC / sqrtC * term1
         term1 = torch.fft.ifft2(term1, norm="ortho").real
 
-        # Term 2: S dD eps
         term2 = 0.5 * dD / sqrtD * eps
         term2 = torch.fft.fft2(term2, norm="ortho")
         term2 = sqrtC * term2
@@ -604,8 +550,6 @@ class SqrtSpatialSpectralDiagSigma(SigmaParam):
         return -res
 
 class SqrtSpectralSpatialDiagSigma(SigmaParam):
-    """sigma =sqrt{DS}"""
-
     def __init__(self, channels: int, *args, **kwargs):
         super().__init__(channels, *args, **kwargs)
         self.s_channels = 2
@@ -614,18 +558,15 @@ class SqrtSpectralSpatialDiagSigma(SigmaParam):
     def apply_s(self, s: Tensor, eps: Tensor) -> Tensor:
         D, C = s[:, :self.channels], s[:, self.channels:]        
 
-        # Spectral
         res = torch.fft.fft2(eps, norm="ortho")
         res = torch.sqrt(C) * res
         res = torch.fft.ifft2(res, norm="ortho").real
 
-        # Spatial
         res = torch.sqrt(D) * res
 
         return res
 
     def apply_ds(self, s: Tensor, ds: Tensor, eps: Tensor) -> Tensor:
-        """dD S + D dS"""
         D, C = s[:, :self.channels], s[:, self.channels:]
         dD, dC = ds[:, :self.channels], ds[:, self.channels:]
 
@@ -634,12 +575,10 @@ class SqrtSpectralSpatialDiagSigma(SigmaParam):
 
         eps_hat = torch.fft.fft2(eps, norm="ortho")
 
-        # Term 1: dD S eps
         term1 = sqrtC * eps_hat
         term1 = torch.fft.ifft2(term1, norm="ortho").real
         term1 = 0.5 * dD / sqrtD * term1
 
-        # Term 2: D dS eps
         term2 = 0.5 * dC / sqrtC * eps_hat
         term2 = torch.fft.ifft2(term2, norm="ortho").real
         term2 = sqrtD * term2
@@ -660,7 +599,6 @@ class SqrtSpectralSpatialDiagSigma(SigmaParam):
         return -res
 
 
-
 SIGMA_MAP = {
     "spatial_diag": SpatialDiagSigma,
     "spectral_diag": SpectralDiagSigma,
@@ -671,9 +609,6 @@ SIGMA_MAP = {
 }
 
 class PosteriorAffine(nn.Module):
-    """
-    F_{phi}(X, t, epsilon) = m_{phi}(X, t) + s_{phi}(X, t) * epsilon
-    """
     def __init__(self,  nx, channels, hidden_channels, *args, interpolant_type="learnable", sigma_type="diag", **kwargs):
         super().__init__()
 

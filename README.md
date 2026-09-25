@@ -1,14 +1,12 @@
-# SDE-Cast
+Continuous-trajectory animations: <https://moshqil.github.io/sde-cast-viz/>
 
-**Modeling weather as a neural SDE.** Inference code and released checkpoints for
-*SDE-Cast: Modeling Weather as a Neural SDE* (Marchenko, Andrae, Lindsten, Naesseth).
+# SDE-Cast
 
 SDE-Cast learns a stochastic differential equation directly on weather states:
 
 $$dz_t = h_\theta(z_t, t)\,dt + g_\theta(z_t, t)\,dw$$
 
-Forecasting is then just integrating that SDE forward from an initial state. Two
-things follow that fixed-step forecasters do not give you:
+Forecasting is then just integrating that SDE forward from an initial state:
 
 - **Continuous in time.** The learnt drift and diffusion are defined at every
   instant, so you can ask for a forecast at 15 minutes or 4.5 hours without
@@ -24,10 +22,6 @@ through the solver, which is what makes neural SDEs tractable at weather-state
 dimensionality.
 
 Continuous-trajectory animations: <https://moshqil.github.io/sde-cast-viz/>
-
-> **This repository is inference only.** It loads the released checkpoints,
-> produces forecasts, and reproduces the paper's evaluation. Training code,
-> optimisers and experiment tracking are deliberately not included.
 
 ---
 
@@ -230,11 +224,6 @@ sdecast/
 scripts/            forecast, evaluate, tables, spectrum, data download/generation
 examples/           interpolant demo
 ```
-
-Dependencies are deliberately small: `torch`, `numpy`, `tqdm`, `xarray`. The
-checkpoints load without PyTorch Lightning, and nothing here imports wandb or
-cartopy. `pyshtools` (spectra), `cdsapi` (download), `scipy` and `netCDF4` (SQG
-generation) are optional extras.
 
 Device selection is automatic (CUDA, then MPS, then CPU) and overridable with
 `--device`. Verified here on CPU and Apple Silicon; the code is ordinary

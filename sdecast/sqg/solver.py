@@ -1,3 +1,11 @@
+# Surface quasi-geostrophic turbulence: constant PV f-plane QG turbulence on a
+# doubly-periodic domain, with Ekman damping, linear thermal relaxation to an
+# equilibrium jet, and hyperdiffusion. FFT spectral collocation, RK4 time
+# stepping, 2/3-rule dealiasing.
+#
+# From the sqgturb package by Jeff Whitaker (NOAA), December 2016
+# <jeffrey.s.whitaker@noaa.gov> -- https://github.com/jswhit/sqgturb
+# A work of the US federal government, in the public domain. See NOTICE.
 from __future__ import print_function
 import numpy as np
 

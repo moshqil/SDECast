@@ -1,23 +1,4 @@
 #!/usr/bin/env python
-"""Latitude-weighted RMSE / CRPS / SSR against lead time, written as JSON.
-
-Metrics are accumulated per trajectory and averaged, in physical units. SSR is
-derived after averaging, with the fair-ensemble inflation sqrt((M+1)/M).
-
-A persistence baseline (the initial state held constant) is scored alongside.
-
-Examples
---------
-Quick check on the committed sample::
-
-    python scripts/evaluate.py --system era5 --n-trajectories 4 --lead-hours 6 \
-        --n-ens 4 --steps-per-hour 8
-
-Paper settings (needs a downloaded test year)::
-
-    python scripts/evaluate.py --system era5 --data <DIR> --year 2018 \
-        --n-trajectories 100 --lead-hours 120 --n-ens 24 --steps-per-hour 64
-"""
 from __future__ import annotations
 
 import argparse
@@ -77,8 +58,6 @@ def main():
     else:
         result = evaluate_sqg(args, model, hp, device)
 
-    # Record everything needed to reproduce the run: upstream omitted the stats file
-    # and step count, which made published numbers impossible to match exactly.
     result["config"] = dict(
         system=args.system, ckpt=str(ckpt), ckpt_bytes=ckpt.stat().st_size,
         data=args.data, stats=args.stats if args.system == "era5" else None,
@@ -126,9 +105,9 @@ def evaluate_era5(args, model, hp, device):
                                 n_ens=args.n_ens, ts=0.0, tf=args.lead_hours,
                                 steps_per_unit_time=args.steps_per_hour,
                                 init_time_days=float(t_days[0]), keep_steps=keep)
-        pred = ds.denormalize(path.cpu().flatten(0, 1)).reshape(path.shape)  # (T,M,C,H,W)
-        tgt = ds.denormalize(truth.cpu())                                     # (T,C,H,W)
-        persist = tgt[0:1].expand_as(tgt).unsqueeze(1)                        # (T,1,C,H,W)
+        pred = ds.denormalize(path.cpu().flatten(0, 1)).reshape(path.shape)
+        tgt = ds.denormalize(truth.cpu())
+        persist = tgt[0:1].expand_as(tgt).unsqueeze(1)
 
         acc["rmse"].append(area_weighted_rmse_all_leads(pred.mean(1), tgt, weights))
         acc["crps"].append(area_weighted_crps_all_leads(pred, tgt, weights))
@@ -148,7 +127,6 @@ def evaluate_sqg(args, model, hp, device):
     tf = args.lead_hours / H_HOURS
     steps = max(1, int(round(args.steps_per_hour * args.lead_hours)))
     keep_hours = [k * ds.frame_hours for k in range(n_frames + 1)]
-    # SQG is doubly periodic: every cell has equal area, so weights are uniform.
     weights = torch.ones(hp["nx"])
 
     acc = {k: [] for k in ("rmse", "crps", "spread", "rmse_p", "crps_p", "spread_p")}
@@ -173,7 +151,7 @@ def evaluate_sqg(args, model, hp, device):
 
 
 def _assemble(acc, var_names, lead_hours, n_ens):
-    mean = {k: torch.stack(v).nanmean(dim=0) for k, v in acc.items()}   # (T, C)
+    mean = {k: torch.stack(v).nanmean(dim=0) for k, v in acc.items()}
     ssr = spread_skill_ratio(mean["spread"], mean["rmse"], n_ens)
     ssr_p = torch.zeros_like(ssr)
 
@@ -187,7 +165,6 @@ def _assemble(acc, var_names, lead_hours, n_ens):
             "crps_persistence": _col(mean["crps_p"], c),
             "ssr_persistence": _col(ssr_p, c),
         }
-    # Lead 0 is the initial condition: skill and spread are both 0, so SSR is 0/0.
     for var in out["metrics"]:
         out["metrics"][var]["ssr"][0] = None
         out["metrics"][var]["ssr_persistence"][0] = None

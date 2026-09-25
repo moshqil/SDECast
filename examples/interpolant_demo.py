@@ -1,16 +1,4 @@
 #!/usr/bin/env python
-"""The learnable interpolant: intermediate states between two observations.
-
-Besides the forecasting SDE, training also produces a posterior interpolant -- a
-model of where the state was *between* two observations. A linear interpolation
-is the obvious baseline; the learnt one should do better, because the dynamics
-between two states are not a straight line.
-
-SQG is the place to check this: the trajectories are dense in time, so the true
-intermediate states are actually known.
-
-    python examples/interpolant_demo.py
-"""
 from __future__ import annotations
 
 import sys
@@ -24,7 +12,7 @@ from sdecast import load_sde_cast
 from sdecast.sqg.data import SQGDataset
 
 ROOT = Path(__file__).resolve().parents[1]
-BRIDGE_HOURS = 6  # the window the SQG model was trained to bridge
+BRIDGE_HOURS = 6
 
 
 def main():

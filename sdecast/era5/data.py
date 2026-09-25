@@ -1,17 +1,3 @@
-"""ERA5 loader for inference.
-
-Reads the merged yearly NetCDF files written by ``scripts/merge_era5.py`` (or the
-committed sample slice) and returns initial conditions, ground truth and the
-model's conditioning tensor.
-
-Two conventions matter and are easy to get wrong:
-
-* The pole row is dropped (33 latitudes -> 32) so the grid is 32x64, and latitude
-  stays on axis -2 with longitude last -- the backbone wraps circularly in
-  longitude only, so transposing them would be physically wrong.
-* Spatial embeddings are derived from the file's own lat/lon grid rather than a
-  stored tensor, so no training-time artefact is needed.
-"""
 from __future__ import annotations
 
 import os
@@ -40,8 +26,6 @@ TIME_DIM = "valid_time"
 
 
 class ERA5Dataset(Dataset):
-    """Yearly ERA5 NetCDF files as (state, conditioning, time) trajectories."""
-
     def __init__(self, data_path, years: Sequence[int] | None = None,
                  variables: Sequence[str] = VAR_NAMES,
                  stats_file: Optional[str] = None,
@@ -103,18 +87,12 @@ class ERA5Dataset(Dataset):
 
     @property
     def cond_channels(self) -> int:
-        return self.static_cond.shape[0] + 4  # + temporal embeddings
+        return self.static_cond.shape[0] + 4
 
     def n_starts(self, length: int) -> int:
-        """How many trajectories of ``length`` frames fit across all files."""
         return max(0, self.n_times - length) * len(self.files)
 
     def get_trajectory(self, idx: int, length: int = 24):
-        """Return ``(data, cond, t_days)`` for trajectory ``idx``.
-
-        ``data`` is (T, C, lat, lon) normalised; ``cond`` is (T, C_cond, lat, lon);
-        ``t_days`` is (T,) as ``dayofyear + hour/24``.
-        """
         per_file = max(1, self.n_times - length)
         file_idx = min(idx // per_file, len(self.files) - 1)
         start = idx % per_file
@@ -126,7 +104,6 @@ class ERA5Dataset(Dataset):
 
         with xr.open_dataset(self.files[file_idx], engine="h5netcdf") as ds:
             subset = ds.isel({TIME_DIM: slice(start, start + length)})
-            # Select by name: variable order must match the checkpoint's channel order.
             arr = subset[self.variables].to_array().transpose(
                 TIME_DIM, "variable", "latitude", "longitude").values
             if self.normalize:
@@ -143,7 +120,6 @@ class ERA5Dataset(Dataset):
         return data, cond, t_days
 
     def denormalize(self, x: torch.Tensor) -> torch.Tensor:
-        """Map a normalised state back to physical units (K, m/s, m^2/s^2)."""
         if not self.normalize:
             return x
         mean = torch.as_tensor(self.mean, dtype=x.dtype, device=x.device).view(1, -1, 1, 1)
